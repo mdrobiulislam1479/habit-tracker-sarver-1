@@ -40,8 +40,25 @@ async function run() {
       if (!habit?.title || !habit?.category || !habit?.userEmail) {
         return res.status(400).send({ message: "Missing required fields" });
       }
+
+      habit.createdAt = new Date();
       const result = await habitsCollection.insertOne(habit);
       res.send(result);
+    });
+
+    app.get("/habits/featured", async (req, res) => {
+      try {
+        const result = await habitsCollection
+          .find()
+          .sort({ createdAt: -1 })
+          .limit(6)
+          .toArray();
+        res.send(result);
+      } catch (error) {
+        res
+          .status(500)
+          .send({ message: "Failed to load featured habits", error });
+      }
     });
 
     await client.db("admin").command({ ping: 1 });
