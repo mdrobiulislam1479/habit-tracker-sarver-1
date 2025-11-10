@@ -35,6 +35,15 @@ async function run() {
       res.send(result);
     });
 
+    app.post("/habits", async (req, res) => {
+      const habit = req.body;
+      if (!habit?.title || !habit?.category || !habit?.userEmail) {
+        return res.status(400).send({ message: "Missing required fields" });
+      }
+      const result = await habitsCollection.insertOne(habit);
+      res.send(result);
+    });
+
     await client.db("admin").command({ ping: 1 });
     console.log("✅ Successfully connected to MongoDB!");
   } catch (error) {
