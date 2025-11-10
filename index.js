@@ -30,6 +30,11 @@ async function run() {
       res.send("Habit Tracker API is running...");
     });
 
+    app.get("/habits", async (req, res) => {
+      const result = await habitsCollection.find().toArray();
+      res.send(result);
+    });
+
     await client.db("admin").command({ ping: 1 });
     console.log("✅ Successfully connected to MongoDB!");
   } catch (error) {
