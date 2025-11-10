@@ -61,6 +61,22 @@ async function run() {
       }
     });
 
+    app.get("/my-habits", async (req, res) => {
+      try {
+        const email = req.query.email;
+        if (!email) {
+          return res.status(400).send({ message: "Email is required" });
+        }
+
+        const query = { userEmail: email };
+        const result = await habitsCollection.find(query).toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching user habits:", error);
+        res.status(500).send({ message: "Failed to fetch user habits" });
+      }
+    });
+
     await client.db("admin").command({ ping: 1 });
     console.log("✅ Successfully connected to MongoDB!");
   } catch (error) {
