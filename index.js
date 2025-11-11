@@ -109,6 +109,70 @@ async function run() {
       }
     });
 
+    app.get("/habits/:id", async (req, res) => {
+      const id = req.params.id;
+      const habit = await habitsCollection.findOne({ _id: new ObjectId(id) });
+      res.send(habit);
+    });
+
+    app.patch("/habits/complete/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const habit = await habitsCollection.findOne({ _id: new ObjectId(id) });
+
+        if (!habit) {
+          return res.status(404).send({ message: "Habit not found" });
+        }
+
+        const today = new Date().toLocaleDateString("en-GB");
+        const formattedDate = today.replace(/\//g, "-");
+
+        let completionHistory = habit.completionHistory || [];
+
+        if (completionHistory.includes(formattedDate)) {
+          return res.status(400).send({ message: "Already completed today" });
+        }
+
+        completionHistory.push(formattedDate);
+
+        completionHistory.sort((a, b) => {
+          const [da, ma, ya] = a.split("-").map(Number);
+          const [db, mb, yb] = b.split("-").map(Number);
+          return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
+        });
+
+        let streak = 0;
+        for (let i = completionHistory.length - 1; i >= 0; i--) {
+          const [d, m, y] = completionHistory[i].split("-").map(Number);
+          const date = new Date(y, m - 1, d);
+
+          const prev = new Date();
+          prev.setDate(prev.getDate() - streak);
+
+          if (
+            date.getDate() === prev.getDate() &&
+            date.getMonth() === prev.getMonth() &&
+            date.getFullYear() === prev.getFullYear()
+          ) {
+            streak++;
+          } else break;
+        }
+
+        const result = await habitsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { completionHistory, currentStreak: streak } }
+        );
+
+        res.send({
+          success: true,
+          message: "Habit marked complete!",
+          currentStreak: streak,
+        });
+      } catch (error) {
+        res.status(500).send({ message: "Failed to complete habit", error });
+      }
+    });
+
     // await client.db("admin").command({ ping: 1 });
     console.log("✅ Successfully connected to MongoDB!");
   } catch (error) {
