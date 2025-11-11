@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 require("dotenv").config();
+const { ObjectId } = require("mongodb");
 
 const app = express();
 const port = 5000;
@@ -31,7 +32,10 @@ async function run() {
     });
 
     app.get("/habits", async (req, res) => {
-      const result = await habitsCollection.find().toArray();
+      const result = await habitsCollection
+        .find()
+        .sort({ createdAt: -1 })
+        .toArray();
       res.send(result);
     });
 
@@ -74,6 +78,22 @@ async function run() {
       } catch (error) {
         console.error("Error fetching user habits:", error);
         res.status(500).send({ message: "Failed to fetch user habits" });
+      }
+    });
+
+    app.put("/habits/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const updatedHabit = req.body;
+
+        const result = await habitsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updatedHabit }
+        );
+
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to update habit", error });
       }
     });
 
