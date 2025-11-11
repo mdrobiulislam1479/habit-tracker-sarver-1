@@ -97,6 +97,18 @@ async function run() {
       }
     });
 
+    app.delete("/habits/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const result = await habitsCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Failed to delete habit", error });
+      }
+    });
+
     // await client.db("admin").command({ ping: 1 });
     console.log("✅ Successfully connected to MongoDB!");
   } catch (error) {
