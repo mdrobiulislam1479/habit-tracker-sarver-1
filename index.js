@@ -124,43 +124,40 @@ async function run() {
           return res.status(404).send({ message: "Habit not found" });
         }
 
-        const today = new Date().toLocaleDateString("en-GB");
-        const formattedDate = today.replace(/\//g, "-");
-
-        let completionHistory = habit.completionHistory || [];
+        const today = new Date();
+        const formattedDate = today.toISOString().split("T")[0];
+        const completionHistory = habit.completionHistory || [];
 
         if (completionHistory.includes(formattedDate)) {
           return res.status(400).send({ message: "Already completed today" });
         }
 
-        completionHistory.push(formattedDate);
+        await habitsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $push: { completionHistory: formattedDate } }
+        );
 
-        completionHistory.sort((a, b) => {
-          const [da, ma, ya] = a.split("-").map(Number);
-          const [db, mb, yb] = b.split("-").map(Number);
-          return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
-        });
+        completionHistory.push(formattedDate);
+        completionHistory.sort((a, b) => new Date(a) - new Date(b));
 
         let streak = 0;
         for (let i = completionHistory.length - 1; i >= 0; i--) {
-          const [d, m, y] = completionHistory[i].split("-").map(Number);
-          const date = new Date(y, m - 1, d);
-
-          const prev = new Date();
-          prev.setDate(prev.getDate() - streak);
+          const date = new Date(completionHistory[i]);
+          const prevDate = new Date();
+          prevDate.setDate(today.getDate() - streak);
 
           if (
-            date.getDate() === prev.getDate() &&
-            date.getMonth() === prev.getMonth() &&
-            date.getFullYear() === prev.getFullYear()
+            date.getDate() === prevDate.getDate() &&
+            date.getMonth() === prevDate.getMonth() &&
+            date.getFullYear() === prevDate.getFullYear()
           ) {
             streak++;
           } else break;
         }
 
-        const result = await habitsCollection.updateOne(
+        await habitsCollection.updateOne(
           { _id: new ObjectId(id) },
-          { $set: { completionHistory, currentStreak: streak } }
+          { $set: { currentStreak: streak } }
         );
 
         res.send({
